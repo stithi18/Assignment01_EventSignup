@@ -1,76 +1,149 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Assignment01_EventSignup.Data;
 using Assignment01_EventSignup.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Assignment01_EventSignup.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Assignment01_EventSignup.Controllers
 {
+    [Route("events")]
     public class EventController : Controller
     {
-        // Simulated database (hardcoded events)
-        private static List<Event> events = new List<Event>
-        {
-            new Event
-            {
-                Id = 1,
-                Title = "Career Fair",
-                Date = new DateTime(2026, 2, 1),
-                Location = "Gym"
-            },
-            new Event
-            {
-                Id = 2,
-                Title = "Tech Talk",
-                Date = new DateTime(2026, 2, 8),
-                Location = "Auditorium"
-            },
-            new Event
-            {
-                Id = 3,
-                Title = "Hack Night",
-                Date = new DateTime(2026, 2, 15),
-                Location = "Library"
-            }
-        };
+        private readonly ApplicationDbContext _context;
+        private readonly IBlobService _blobService;
 
-        // STEP 4: Event Manager page
-        public IActionResult Index()
+        public EventController(ApplicationDbContext context, IBlobService blobService)
         {
+            _context = context;
+            _blobService = blobService;
+        }
+
+        [HttpGet("")]
+        public async Task<IActionResult> Index()
+        {
+            var events = await _context.Events.ToListAsync();
             return View(events);
         }
 
-        // STEP 6: Manage Attendees (GET)
-        public IActionResult Manage(int id)
+        [HttpGet("details/{id}")]
+        public async Task<IActionResult> Details(int id)
         {
-            var selectedEvent = events.FirstOrDefault(e => e.Id == id);
+            var eventItem = await _context.Events
+                .Include(e => e.Attendees)
+                .FirstOrDefaultAsync(e => e.Id == id);
 
-            if (selectedEvent == null)
+            if (eventItem == null)
             {
                 return NotFound();
             }
 
-            return View(selectedEvent);
+            return View(eventItem);
         }
 
-        // STEP 8: Signup Attendee (POST)
-        [HttpPost]
-        public IActionResult Signup(int eventId, string name, string email)
+        [HttpGet("create")]
+        public IActionResult Create()
         {
-            var selectedEvent = events.FirstOrDefault(e => e.Id == eventId);
+            return View();
+        }
 
-            if (selectedEvent != null)
+        [HttpPost("create")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Event eventItem, IFormFile? bannerFile)
+        {
+            if (!ModelState.IsValid)
             {
-                selectedEvent.Attendees.Add(new Attendee
-                {
-                    Name = name,
-                    Email = email
-                });
-
-                TempData["Message"] = "Attendee registered successfully!";
+                return View(eventItem);
             }
 
-            return RedirectToAction("Manage", new { id = eventId });
+            var uploadedUrl = await _blobService.UploadFileAsync(bannerFile);
+            if (!string.IsNullOrEmpty(uploadedUrl))
+            {
+                eventItem.BannerUrl = uploadedUrl;
+            }
+
+            _context.Events.Add(eventItem);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet("edit/{id}")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var eventItem = await _context.Events.FindAsync(id);
+
+            if (eventItem == null)
+            {
+                return NotFound();
+            }
+
+            return View(eventItem);
+        }
+
+        [HttpPost("edit/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Event eventItem, IFormFile? bannerFile)
+        {
+            if (id != eventItem.Id)
+            {
+                return NotFound();
+            }
+
+            var existingEvent = await _context.Events.FindAsync(id);
+            if (existingEvent == null)
+            {
+                return NotFound();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(eventItem);
+            }
+
+            existingEvent.Title = eventItem.Title;
+            existingEvent.Description = eventItem.Description;
+            existingEvent.Date = eventItem.Date;
+            existingEvent.Location = eventItem.Location;
+
+            var uploadedUrl = await _blobService.UploadFileAsync(bannerFile);
+            if (!string.IsNullOrEmpty(uploadedUrl))
+            {
+                existingEvent.BannerUrl = uploadedUrl;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet("delete/{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var eventItem = await _context.Events.FirstOrDefaultAsync(e => e.Id == id);
+
+            if (eventItem == null)
+            {
+                return NotFound();
+            }
+
+            return View(eventItem);
+        }
+
+        [HttpPost("delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var eventItem = await _context.Events.FindAsync(id);
+
+            if (eventItem == null)
+            {
+                return NotFound();
+            }
+
+            _context.Events.Remove(eventItem);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
         }
     }
 }

@@ -1,0 +1,36 @@
+﻿@model IEnumerable<Assignment01_EventSignup.Models.Attendee>
+
+@{
+    ViewData["Title"] = "Manage Attendees";
+    var eventItem = ViewBag.Event as Assignment01_EventSignup.Models.Event;
+}
+
+<h1>Manage Attendees - @eventItem?.Title</h1>
+
+<p>
+    <a asp-controller="Attendees" asp-action="Create" asp-route-eventId="@eventItem?.Id" class="btn btn-primary">Add Attendee</a>
+    <a asp-controller="Event" asp-action="Details" asp-route-id="@eventItem?.Id" class="btn btn-link">Back to Event</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var attendee in Model)
+        {
+            <tr>
+                <td>@attendee.Name</td>
+                <td>@attendee.Email</td>
+                <td>
+                    <a asp-controller="Attendees" asp-action="Edit" asp-route-eventId="@attendee.EventId" asp-route-id="@attendee.Id">Edit</a> |
+                    <a asp-controller="Attendees" asp-action="Delete" asp-route-eventId="@attendee.EventId" asp-route-id="@attendee.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

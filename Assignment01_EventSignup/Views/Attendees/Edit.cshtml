@@ -1,0 +1,34 @@
+﻿@model Assignment01_EventSignup.Models.Attendee
+
+@{
+    ViewData["Title"] = "Edit Attendee";
+    var eventItem = ViewBag.Event as Assignment01_EventSignup.Models.Event;
+}
+
+<h1>Edit Attendee - @eventItem?.Title</h1>
+
+<form asp-action="Edit" asp-route-eventId="@Model.EventId" asp-route-id="@Model.Id" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="EventId" />
+
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-controller="Attendees" asp-action="Index" asp-route-eventId="@Model.EventId" class="btn btn-link">Back</a>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

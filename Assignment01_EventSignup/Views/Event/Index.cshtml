@@ -1,9 +1,16 @@
-@model List<Event>
+@model IEnumerable<Assignment01_EventSignup.Models.Event>
 
-<h2>Event Manager</h2>
-<p>Select an event to manage attendees.</p>
+@{
+    ViewData["Title"] = "Event Manager";
+}
 
-<table class="table">
+<h1>Event Manager</h1>
+
+<p>
+    <a asp-controller="Event" asp-action="Create" class="btn btn-primary">Create New Event</a>
+</p>
+
+<table class="table table-striped">
     <thead>
         <tr>
             <th>Title</th>
@@ -13,18 +20,17 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var e in Model)
+        @foreach (var item in Model)
         {
             <tr>
-                <td>@e.Title</td>
-                <td>@e.Date.ToString("yyyy-MM-dd")</td>
-                <td>@e.Location</td>
+                <td>@item.Title</td>
+                <td>@item.Date</td>
+                <td>@item.Location</td>
                 <td>
-                    <a class="btn btn-primary"
-                       asp-action="Manage"
-                       asp-route-id="@e.Id">
-                        Manage Attendees
-                    </a>
+                    <a asp-controller="Event" asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-controller="Event" asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-controller="Event" asp-action="Delete" asp-route-id="@item.Id">Delete</a> |
+                    <a asp-controller="Attendees" asp-action="Index" asp-route-eventId="@item.Id">Attendees</a>
                 </td>
             </tr>
         }
