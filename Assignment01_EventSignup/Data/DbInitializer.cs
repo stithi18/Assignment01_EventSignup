@@ -1,64 +1,69 @@
-﻿using Assignment01_EventSignup.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace Assignment01_EventSignup.Data
 {
     public static class DbInitializer
     {
-        public static void Initialize(ApplicationDbContext context)
+        public static async Task SeedAsync(IServiceProvider serviceProvider)
         {
-            context.Database.Migrate();
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
-            if (context.Events.Any())
+            string[] roles = { "Organizer", "Attendee" };
+
+            foreach (var role in roles)
             {
-                return;
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
             }
 
-            var events = new List<Event>
+            string organizerEmail = "organizer@test.com";
+            string attendeeEmail = "attendee@test.com";
+            string password = "Password1!";
+
+            var organizer = await userManager.FindByEmailAsync(organizerEmail);
+            if (organizer == null)
             {
-                new Event
+                organizer = new IdentityUser
                 {
-                    Title = "Routing Workshop",
-                    Description = "Learn attribute routing and MVC patterns.",
-                    Date = DateTime.Now.AddDays(7),
-                    Location = "Algonquin College - T Building",
-                    BannerUrl = "https://via.placeholder.com/900x300.png?text=Routing+Workshop"
-                },
-                new Event
+                    UserName = organizerEmail,
+                    Email = organizerEmail,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(organizer, password);
+                if (result.Succeeded)
                 {
-                    Title = "Tech Conference 2026",
-                    Description = "A full-day conference about cloud, AI, and enterprise apps.",
-                    Date = DateTime.Now.AddDays(17),
-                    Location = "Ottawa Convention Centre",
-                    BannerUrl = "https://via.placeholder.com/900x300.png?text=Tech+Conference+2026"
-                },
-                new Event
-                {
-                    Title = "EF Core Bootcamp",
-                    Description = "Hands-on EF Core, Azure SQL and CRUD development.",
-                    Date = DateTime.Now.AddDays(27),
-                    Location = "Online",
-                    BannerUrl = "https://via.placeholder.com/900x300.png?text=EF+Core+Bootcamp"
+                    await userManager.AddToRoleAsync(organizer, "Organizer");
                 }
-            };
-
-            context.Events.AddRange(events);
-            context.SaveChanges();
-
-            var attendees = new List<Attendee>
+            }
+            else if (!await userManager.IsInRoleAsync(organizer, "Organizer"))
             {
-                new Attendee { Name = "Alice Smith", Email = "alice@example.com", EventId = events[0].Id },
-                new Attendee { Name = "Bob Jones", Email = "bob@example.com", EventId = events[0].Id },
+                await userManager.AddToRoleAsync(organizer, "Organizer");
+            }
 
-                new Attendee { Name = "Charlie Brown", Email = "charlie@example.com", EventId = events[1].Id },
-                new Attendee { Name = "Diana Prince", Email = "diana@example.com", EventId = events[1].Id },
+            var attendee = await userManager.FindByEmailAsync(attendeeEmail);
+            if (attendee == null)
+            {
+                attendee = new IdentityUser
+                {
+                    UserName = attendeeEmail,
+                    Email = attendeeEmail,
+                    EmailConfirmed = true
+                };
 
-                new Attendee { Name = "Ethan Hunt", Email = "ethan@example.com", EventId = events[2].Id },
-                new Attendee { Name = "Fiona Green", Email = "fiona@example.com", EventId = events[2].Id }
-            };
-
-            context.Attendees.AddRange(attendees);
-            context.SaveChanges();
+                var result = await userManager.CreateAsync(attendee, password);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(attendee, "Attendee");
+                }
+            }
+            else if (!await userManager.IsInRoleAsync(attendee, "Attendee"))
+            {
+                await userManager.AddToRoleAsync(attendee, "Attendee");
+            }
         }
     }
 }

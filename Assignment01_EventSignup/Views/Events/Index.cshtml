@@ -1,0 +1,46 @@
+@model IEnumerable<Assignment01_EventSignup.Models.Event>
+
+@{
+    ViewData["Title"] = "Events";
+}
+
+<h1>Events</h1>
+
+@if (User.IsInRole("Organizer"))
+{
+    <p>
+        <a asp-action="Create" class="btn btn-primary">Create New Event</a>
+    </p>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Location</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Title</td>
+                <td>@item.Date.ToShortDateString()</td>
+                <td>@item.Location</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.Id">View</a>
+
+                    @if (User.IsInRole("Organizer"))
+                    {
+                        <span> | </span>
+                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                        <span> | </span>
+                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+This file is used by the publish/package process of your Web project. You can customize the behavior of this process
+by editing this MSBuild file. In order to learn more about this please visit https://go.microsoft.com/fwlink/?LinkID=208121. 
+-->
+<Project>
+  <PropertyGroup>
+    <TimeStampOfAssociatedLegacyPublishXmlFile />
+    <History>True|2026-04-08T21:39:59.9766632Z||;True|2026-04-08T17:22:24.0546826-04:00||;True|2026-04-08T17:16:55.4801600-04:00||;True|2026-04-08T17:15:54.6759037-04:00||;True|2026-04-08T16:54:47.0385468-04:00||;True|2026-04-08T16:53:16.8984052-04:00||;True|2026-04-08T16:47:42.8187493-04:00||;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+  <ItemGroup>
+    <AzureDBConnectionStrings Include="REDACTED" />
+    <AzureDBConnectionStrings Include="Server=tcp:eventdb.database.windows.net,1433;Initial Catalog=EventDb;Persist Security Info=False;User ID=tithidb;Password={your_password};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30" />
+  </ItemGroup>
+</Project>

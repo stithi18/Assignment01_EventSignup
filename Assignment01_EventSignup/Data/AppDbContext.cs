@@ -1,17 +1,19 @@
-﻿using Assignment01_EventSignup.Models;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Assignment01_EventSignup.Models;
 
 namespace Assignment01_EventSignup.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<IdentityUser>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
         {
         }
 
-        public DbSet<Event> Events => Set<Event>();
-        public DbSet<Attendee> Attendees => Set<Attendee>();
+        public DbSet<Event> Events { get; set; }
+        public DbSet<Attendee> Attendees { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

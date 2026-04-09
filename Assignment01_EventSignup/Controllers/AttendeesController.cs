@@ -1,21 +1,21 @@
 ﻿using Assignment01_EventSignup.Data;
 using Assignment01_EventSignup.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assignment01_EventSignup.Controllers
 {
-    [Route("events/{eventId}/attendees")]
     public class AttendeesController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly AppDbContext _context;
 
-        public AttendeesController(ApplicationDbContext context)
+        public AttendeesController(AppDbContext context)
         {
             _context = context;
         }
 
-        [HttpGet("")]
+        [Authorize]
         public async Task<IActionResult> Index(int eventId)
         {
             var eventItem = await _context.Events
@@ -31,7 +31,7 @@ namespace Assignment01_EventSignup.Controllers
             return View(eventItem.Attendees.ToList());
         }
 
-        [HttpGet("create")]
+        [Authorize(Roles = "Organizer")]
         public async Task<IActionResult> Create(int eventId)
         {
             var eventItem = await _context.Events.FindAsync(eventId);
@@ -44,119 +44,54 @@ namespace Assignment01_EventSignup.Controllers
             return View(new Attendee { EventId = eventId });
         }
 
-        [HttpPost("create")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int eventId, Attendee attendee)
+        [Authorize(Roles = "Organizer")]
+        public async Task<IActionResult> Create(Attendee attendee)
         {
-            var eventItem = await _context.Events.FindAsync(eventId);
-            if (eventItem == null)
+            if (ModelState.IsValid)
             {
-                return NotFound();
+                _context.Attendees.Add(attendee);
+                await _context.SaveChangesAsync();
+                return RedirectToAction("Details", "Events", new { id = attendee.EventId });
             }
 
-            attendee.EventId = eventId;
-
-            if (!ModelState.IsValid)
-            {
-                ViewBag.Event = eventItem;
-                return View(attendee);
-            }
-
-            if (string.IsNullOrWhiteSpace(attendee.Id))
-            {
-                attendee.Id = Guid.NewGuid().ToString();
-            }
-
-            _context.Attendees.Add(attendee);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index), new { eventId });
-        }
-
-        [HttpGet("edit/{id}")]
-        public async Task<IActionResult> Edit(int eventId, string id)
-        {
-            var attendee = await _context.Attendees
-                .FirstOrDefaultAsync(a => a.Id == id && a.EventId == eventId);
-
-            var eventItem = await _context.Events.FindAsync(eventId);
-
-            if (attendee == null || eventItem == null)
-            {
-                return NotFound();
-            }
-
-            ViewBag.Event = eventItem;
+            ViewBag.Event = await _context.Events.FindAsync(attendee.EventId);
             return View(attendee);
         }
 
-        [HttpPost("edit/{id}")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int eventId, string id, Attendee attendee)
-        {
-            if (id != attendee.Id)
-            {
-                return NotFound();
-            }
-
-            var existingAttendee = await _context.Attendees
-                .FirstOrDefaultAsync(a => a.Id == id && a.EventId == eventId);
-
-            var eventItem = await _context.Events.FindAsync(eventId);
-
-            if (existingAttendee == null || eventItem == null)
-            {
-                return NotFound();
-            }
-
-            attendee.EventId = eventId;
-
-            if (!ModelState.IsValid)
-            {
-                ViewBag.Event = eventItem;
-                return View(attendee);
-            }
-
-            existingAttendee.Name = attendee.Name;
-            existingAttendee.Email = attendee.Email;
-
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index), new { eventId });
-        }
-
-        [HttpGet("delete/{id}")]
-        public async Task<IActionResult> Delete(int eventId, string id)
+        [Authorize(Roles = "Organizer")]
+        public async Task<IActionResult> Delete(int id)
         {
             var attendee = await _context.Attendees
-                .FirstOrDefaultAsync(a => a.Id == id && a.EventId == eventId);
-
-            var eventItem = await _context.Events.FindAsync(eventId);
-
-            if (attendee == null || eventItem == null)
-            {
-                return NotFound();
-            }
-
-            ViewBag.Event = eventItem;
-            return View(attendee);
-        }
-
-        [HttpPost("delete/{id}")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int eventId, string id)
-        {
-            var attendee = await _context.Attendees
-                .FirstOrDefaultAsync(a => a.Id == id && a.EventId == eventId);
+                .Include(a => a.Event)
+                .FirstOrDefaultAsync(a => a.Id == id);
 
             if (attendee == null)
             {
                 return NotFound();
             }
 
+            return View(attendee);
+        }
+
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Organizer")]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var attendee = await _context.Attendees.FindAsync(id);
+            if (attendee == null)
+            {
+                return NotFound();
+            }
+
+            int eventId = attendee.EventId;
+
             _context.Attendees.Remove(attendee);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Index), new { eventId });
+            return RedirectToAction("Details", "Events", new { id = eventId });
         }
     }
 }
