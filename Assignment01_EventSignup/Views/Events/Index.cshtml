@@ -4,7 +4,7 @@
     ViewData["Title"] = "Events";
 }
 
-<h1>Events</h1>
+<h2>Events</h2>
 
 @if (User.IsInRole("Organizer"))
 {
@@ -13,34 +13,20 @@
     </p>
 }
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Date</th>
-            <th>Location</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@item.Title</td>
-                <td>@item.Date.ToShortDateString()</td>
-                <td>@item.Location</td>
-                <td>
-                    <a asp-action="Details" asp-route-id="@item.Id">View</a>
+@foreach (var item in Model)
+{
+    <div style="border:1px solid #ccc; padding:15px; margin-bottom:15px;">
+        <h3>@item.Title</h3>
+        <p>@item.Description</p>
+        <p><strong>Date:</strong> @item.Date.ToString("f")</p>
+        <p><strong>Location:</strong> @item.Location</p>
 
-                    @if (User.IsInRole("Organizer"))
-                    {
-                        <span> | </span>
-                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
-                        <span> | </span>
-                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-                    }
-                </td>
-            </tr>
+        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info">View Details</a>
+
+        @if (User.IsInRole("Organizer"))
+        {
+            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning">Edit</a>
+            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger">Delete</a>
         }
-    </tbody>
-</table>
+    </div>
+}

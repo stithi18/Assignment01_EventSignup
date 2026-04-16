@@ -1,84 +1,120 @@
 ﻿@model Assignment01_EventSignup.Models.Event
+@using System.Security.Claims
 
 @{
     ViewData["Title"] = "Event Details";
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var isRegistered = Model.Attendees.Any(a => a.UserId == currentUserId);
+    var isOrganizer = User.IsInRole("Organizer");
 }
 
-<h1>Event Details</h1>
+<h2>@Model.Title</h2>
 
-<div>
-    <h4>@Model.Title</h4>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-2">Description</dt>
-        <dd class="col-sm-10">@Model.Description</dd>
-
-        <dt class="col-sm-2">Date</dt>
-        <dd class="col-sm-10">@Model.Date.ToShortDateString()</dd>
-
-        <dt class="col-sm-2">Location</dt>
-        <dd class="col-sm-10">@Model.Location</dd>
-    </dl>
-</div>
-
-<div>
-    @if (User.IsInRole("Organizer"))
-    {
-        <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
-        <span>|</span>
-        <a asp-action="Delete" asp-route-id="@Model.Id">Delete</a>
-        <span>|</span>
-        <a asp-controller="Attendees" asp-action="Create" asp-route-eventId="@Model.Id">Add Attendee</a>
-        <span>|</span>
-    }
-
-    <a asp-action="Index">Back to List</a>
-</div>
-
-<hr />
-<h3>Attendees</h3>
-
-@if (User.Identity != null && User.Identity.IsAuthenticated)
+@if (!string.IsNullOrEmpty(Model.BannerImageUrl))
 {
-    if (Model.Attendees != null && Model.Attendees.Any())
-    {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Full Name</th>
-                    <th>Email</th>
-                    @if (User.IsInRole("Organizer"))
-                    {
-                        <th>Actions</th>
-                    }
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var attendee in Model.Attendees)
-                {
-                    <tr>
-                        <td>@attendee.FullName</td>
-                        <td>@attendee.Email</td>
+    <img src="@Model.BannerImageUrl" alt="Banner" style="max-width:100%; height:auto; margin-bottom:20px;" />
+}
 
-                        @if (User.IsInRole("Organizer"))
-                        {
-                            <td>
-                                <a asp-controller="Attendees" asp-action="Delete" asp-route-id="@attendee.Id">
-                                    Remove
-                                </a>
-                            </td>
-                        }
-                    </tr>
-                }
-            </tbody>
-        </table>
+<p><strong>Description:</strong> @Model.Description</p>
+<p><strong>Date:</strong> @Model.Date.ToString("f")</p>
+<p><strong>Location:</strong> @Model.Location</p>
+<p><strong>Organizer:</strong> @Model.OrganizerUser?.Email</p>
+
+<div id="notificationArea" style="margin:15px 0;"></div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (User.Identity?.IsAuthenticated == true)
+{
+    if (!isRegistered)
+    {
+        <form asp-controller="Attendees" asp-action="Register" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="eventId" value="@Model.Id" />
+            <button type="submit" class="btn btn-primary">Register</button>
+        </form>
     }
     else
     {
-        <p>No attendees registered yet.</p>
+        <form asp-controller="Attendees" asp-action="Unregister" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="eventId" value="@Model.Id" />
+            <button type="submit" class="btn btn-warning">Unregister</button>
+        </form>
     }
 }
 else
 {
-    <p>Login to view attendee list.</p>
+    <p><a asp-area="Identity" asp-page="/Account/Login">Login</a> to register for this event.</p>
+}
+
+<hr />
+
+<h3>Attendees (<span id="attendeeCount">@Model.Attendees.Count</span>)</h3>
+
+<ul id="attendeeList">
+    @foreach (var attendee in Model.Attendees)
+    {
+        <li>@attendee.FullName (@attendee.Email)</li>
+    }
+</ul>
+
+@if (User.IsInRole("Organizer"))
+{
+    <p>
+        <a asp-controller="Attendees" asp-action="Index" asp-route-eventId="@Model.Id" class="btn btn-secondary">
+            Manage Attendees
+        </a>
+    </p>
+}
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script>
+        const eventId = parseInt('@Model.Id');
+        const isOrganizer = '@isOrganizer.ToString().ToLower()' === 'true';
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/eventHub")
+            .build();
+
+        connection.on("AttendeeUpdated", function (data) {
+            document.getElementById("attendeeCount").textContent = data.attendeeCount;
+
+            const attendeeList = document.getElementById("attendeeList");
+            attendeeList.innerHTML = "";
+
+            data.attendees.forEach(function (attendee) {
+                const li = document.createElement("li");
+                li.textContent = attendee.fullName + " (" + attendee.email + ")";
+                attendeeList.appendChild(li);
+            });
+        });
+
+        connection.on("OrganizerNotification", function (message) {
+            if (isOrganizer) {
+                const notificationArea = document.getElementById("notificationArea");
+                notificationArea.innerHTML = '<div class="alert alert-info">' + message + '</div>';
+            }
+        });
+
+        connection.start()
+            .then(function () {
+                return connection.invoke("JoinEventGroup", eventId);
+            })
+            .catch(function (err) {
+                console.error(err.toString());
+            });
+
+        window.addEventListener("beforeunload", function () {
+            connection.invoke("LeaveEventGroup", eventId).catch(function () { });
+        });
+    </script>
 }

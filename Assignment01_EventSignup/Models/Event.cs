@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Assignment01_EventSignup.Models
 {
@@ -13,12 +14,18 @@ namespace Assignment01_EventSignup.Models
         public string Description { get; set; } = string.Empty;
 
         [Required]
-        [DataType(DataType.Date)]
         public DateTime Date { get; set; }
 
-        [Required]
-        public string Location { get; set; } = string.Empty;
+        public string? Location { get; set; }
 
-        public List<Attendee> Attendees { get; set; } = new();
+        public string? BannerImageUrl { get; set; }
+
+        [Required]
+        public string OrganizerUserId { get; set; } = string.Empty;
+
+        [ForeignKey(nameof(OrganizerUserId))]
+        public ApplicationUser? OrganizerUser { get; set; }
+
+        public ICollection<Attendee> Attendees { get; set; } = new List<Attendee>();
     }
 }

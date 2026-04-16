@@ -2,11 +2,18 @@
 
 @{
     ViewData["Title"] = "Add Attendee";
+    var eventItem = ViewBag.Event as Assignment01_EventSignup.Models.Event;
 }
 
-<h1>Add Attendee</h1>
+<h2>Add Attendee</h2>
+
+@if (eventItem != null)
+{
+    <p><strong>Event:</strong> @eventItem.Title</p>
+}
 
 <form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="EventId" />
 
     <div class="mb-3">
@@ -22,7 +29,10 @@
     </div>
 
     <button type="submit" class="btn btn-primary">Add</button>
-    <a asp-controller="Events" asp-action="Details" asp-route-id="@Model.EventId" class="btn btn-secondary">Cancel</a>
+    @if (eventItem != null)
+    {
+        <a asp-action="Index" asp-route-eventId="@eventItem.Id" class="btn btn-secondary">Back</a>
+    }
 </form>
 
 @section Scripts {
